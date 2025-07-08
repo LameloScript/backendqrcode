@@ -261,6 +261,39 @@ def create_app():
             logger.error(f"Erreur récupération utilisateur: {e}")
             return jsonify({'error': 'Erreur serveur'}), 500
     
+    @app.route('/debug-auth', methods=['GET'])
+    @jwt_required()
+    def debug_auth():
+        """Endpoint de debug pour l'authentification"""
+        try:
+            current_user_id = get_jwt_identity()
+            user = db.session.get(User, current_user_id)
+            
+            return jsonify({
+                'status': 'authenticated',
+                'user_id': current_user_id,
+                'user_exists': user is not None,
+                'user_email': user.email if user else None,
+                'timestamp': datetime.now().isoformat(),
+                'jwt_config': {
+                    'access_token_expires': app.config['JWT_ACCESS_TOKEN_EXPIRES'].total_seconds(),
+                    'refresh_token_expires': app.config['JWT_REFRESH_TOKEN_EXPIRES'].total_seconds()
+                }
+            }), 200
+        except Exception as e:
+            logger.error(f"Erreur debug auth: {e}")
+            return jsonify({'error': 'Erreur serveur', 'details': str(e)}), 500
+    
+    @app.route('/health', methods=['GET'])
+    def health_check():
+        """Vérification de santé du serveur"""
+        return jsonify({
+            'status': 'healthy',
+            'timestamp': datetime.now().isoformat(),
+            'environment': os.getenv('FLASK_ENV', 'development'),
+            'database': 'connected'
+        }), 200
+    
     # Routes QR Codes
     @app.route('/qr-codes', methods=['POST'])
     @jwt_required()
