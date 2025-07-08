@@ -58,11 +58,16 @@ class ProductionConfig:
     LOG_LEVEL = os.getenv('LOG_LEVEL', 'INFO')
     
     def __init__(self):
-        # Configuration de la base de données MySQL
+        # Configuration de la base de données
         if all([self.MYSQL_USERNAME, self.MYSQL_PASSWORD, self.MYSQL_DATABASE]):
+            # Utiliser MySQL si configuré
             self.SQLALCHEMY_DATABASE_URI = f"mysql+pymysql://{self.MYSQL_USERNAME}:{self.MYSQL_PASSWORD}@{self.MYSQL_HOST}:{self.MYSQL_PORT}/{self.MYSQL_DATABASE}?charset=utf8mb4"
         else:
-            raise ValueError("Variables d'environnement MySQL manquantes pour la production")
+            # Fallback vers SQLite pour Railway
+            import os
+            db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'instance', 'qrcode_users.db')
+            os.makedirs(os.path.dirname(db_path), exist_ok=True)
+            self.SQLALCHEMY_DATABASE_URI = f'sqlite:///{db_path}'
         
         # Vérifier les variables critiques
         if not self.SECRET_KEY:
