@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Configuration settings for the Flask application
+Configuration simple et fonctionnelle
 """
 
 import os
@@ -9,61 +9,75 @@ from dotenv import load_dotenv
 load_dotenv()
 
 class Config:
-    """Base configuration class"""
+    """Configuration de base"""
+    
+    # Configuration Flask
     SECRET_KEY = os.getenv('SECRET_KEY', 'dev-secret-key-change-in-production')
+    
+    # Configuration MySQL
+    MYSQL_HOST = os.getenv('MYSQL_HOST', '127.0.0.1')
+    MYSQL_PORT = int(os.getenv('MYSQL_PORT', 3306))
+    MYSQL_DATABASE = os.getenv('MYSQL_DATABASE')
+    MYSQL_USERNAME = os.getenv('MYSQL_USERNAME')
+    MYSQL_PASSWORD = os.getenv('MYSQL_PASSWORD')
+    
+    # Configuration JWT
+    JWT_SECRET_KEY = os.getenv('JWT_SECRET_KEY', 'jwt-dev-secret-key')
+    JWT_ACCESS_TOKEN_EXPIRES = int(os.getenv('JWT_ACCESS_TOKEN_EXPIRES', 900))
+    JWT_REFRESH_TOKEN_EXPIRES = int(os.getenv('JWT_REFRESH_TOKEN_EXPIRES', 2592000))
+    
+    # Configuration SQLAlchemy
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     
-    # SMTP Configuration
-    SMTP_SERVER = os.getenv('SMTP_SERVER')
-    SMTP_PORT = int(os.getenv('SMTP_PORT', 465))
-    SMTP_USERNAME = os.getenv('SMTP_USERNAME')
-    SMTP_PASSWORD = os.getenv('SMTP_PASSWORD')
-    FROM_EMAIL = os.getenv('FROM_EMAIL')
-    NO_REPLY_EMAIL = os.getenv('NO_REPLY_EMAIL')
+    # Configuration CORS
+    CORS_ORIGINS = os.getenv('CORS_ORIGINS', 'http://localhost:8080,http://localhost:5173,http://localhost:3000').split(',')
     
-    # CORS Origins
-    CORS_ORIGINS = [
-        "http://localhost:8080",  # Vite dev
-        "http://localhost:5173",  # Vite dev alternative
-        "http://localhost:3000",  # React dev
-        "https://pepiteafrica.com",     # Production
-        "https://www.pepiteafrica.com"  # Production with www
-    ]
+    # Configuration URL de base pour les liens courts
+    BASE_URL = os.getenv('BASE_URL', 'http://127.0.0.1:5000')
     
     # Rate Limiting
-    RATELIMIT_STORAGE_URL = "memory://"
-    RATELIMIT_DEFAULT = "200 per day, 50 per hour"
-
-class DevelopmentConfig(Config):
-    """Development configuration"""
-    DEBUG = True
-    SQLALCHEMY_DATABASE_URI = os.getenv('DATABASE_URL', 'sqlite:///qrcode_users_dev.db')
+    RATELIMIT_STORAGE_URL = os.getenv('RATELIMIT_STORAGE_URL', 'memory://')
     
-class ProductionConfig(Config):
-    """Production configuration"""
-    DEBUG = False
-    SQLALCHEMY_DATABASE_URI = os.getenv('DATABASE_URL', 'sqlite:///qrcode_users.db')
+    def __init__(self):
+        # Configuration automatique de la base de données avec test de connexion
+        if all([self.MYSQL_USERNAME, self.MYSQL_PASSWORD, self.MYSQL_DATABASE]):
+            # Tenter MySQL d'abord
+            mysql_uri = f"mysql+pymysql://{self.MYSQL_USERNAME}:{self.MYSQL_PASSWORD}@{self.MYSQL_HOST}:{self.MYSQL_PORT}/{self.MYSQL_DATABASE}"
+            
+            # Test de connexion MySQL
+            if self._test_mysql_connection(mysql_uri):
+                self.SQLALCHEMY_DATABASE_URI = mysql_uri
+                print(f"Configuration MySQL: {self.MYSQL_DATABASE}")
+            else:
+                # Fallback SQLite si MySQL échoue
+                db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'instance', 'qrcode_users.db')
+                self.SQLALCHEMY_DATABASE_URI = f'sqlite:///{db_path}'
+                print("Configuration SQLite (MySQL inaccessible)")
+        else:
+            # Fallback SQLite si credentials manquants
+            db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'instance', 'qrcode_users.db')
+            self.SQLALCHEMY_DATABASE_URI = f'sqlite:///{db_path}'
+            print("Configuration SQLite (MySQL indisponible)")
     
-    # Additional production settings
-    SESSION_COOKIE_SECURE = True
-    SESSION_COOKIE_HTTPONLY = True
-    SESSION_COOKIE_SAMESITE = 'Lax'
-
-class TestingConfig(Config):
-    """Testing configuration"""
-    TESTING = True
-    SQLALCHEMY_DATABASE_URI = 'sqlite:///:memory:'
-    WTF_CSRF_ENABLED = False
-
-# Configuration dictionary
-config = {
-    'development': DevelopmentConfig,
-    'production': ProductionConfig,
-    'testing': TestingConfig,
-    'default': DevelopmentConfig
-}
+    def _test_mysql_connection(self, uri):
+        """Test la connexion MySQL"""
+        try:
+            import pymysql
+            # Extraire les paramètres de connexion
+            connection = pymysql.connect(
+                host=self.MYSQL_HOST,
+                port=self.MYSQL_PORT,
+                user=self.MYSQL_USERNAME,
+                password=self.MYSQL_PASSWORD,
+                database=self.MYSQL_DATABASE,
+                connect_timeout=5
+            )
+            connection.close()
+            return True
+        except Exception as e:
+            print(f"Test connexion MySQL échoué: {e}")
+            return False
 
 def get_config():
-    """Get configuration based on environment"""
-    env = os.getenv('FLASK_ENV', 'development')
-    return config.get(env, config['default'])
+    """Récupérer la configuration"""
+    return Config()
