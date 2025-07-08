@@ -1,0 +1,19 @@
+[phases.setup]
+nixPkgs = ['python39', 'pip']
+
+[phases.install]
+cmds = [
+    'pip install -r requirements.txt'
+]
+
+[phases.build]
+cmds = [
+    'echo "Build phase completed"'
+]
+
+[start]
+cmd = 'python wsgi.py'
+
+[variables]
+PYTHONPATH = './'
+FLASK_ENV = 'production'
