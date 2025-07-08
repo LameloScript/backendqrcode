@@ -30,10 +30,10 @@ class Config:
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     
     # Configuration CORS
-    CORS_ORIGINS = os.getenv('CORS_ORIGINS', 'http://localhost:8080,http://localhost:5173,http://localhost:3000').split(',')
+    CORS_ORIGINS = os.getenv('CORS_ORIGINS', 'http://localhost:8080,http://localhost:5173,http://localhost:3000,https://qrcodes.taohome.ci').split(',')
     
     # Configuration URL de base pour les liens courts
-    BASE_URL = os.getenv('BASE_URL', 'http://127.0.0.1:5000')
+    BASE_URL = os.getenv('BASE_URL', 'https://qrcodes.taohome.ci')
     
     # Rate Limiting
     RATELIMIT_STORAGE_URL = os.getenv('RATELIMIT_STORAGE_URL', 'memory://')
