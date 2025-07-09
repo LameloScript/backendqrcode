@@ -580,7 +580,26 @@ def create_app():
             short_link = ShortLink.query.filter_by(short_code=short_code, is_active=True).first()
             
             if not short_link:
-                return jsonify({'error': 'Lien court non trouvé'}), 404
+                # Afficher une page d'erreur HTML au lieu d'un JSON
+                return f'''
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Lien non trouvé</title>
+                    <meta charset="utf-8">
+                    <style>
+                        body {{ font-family: Arial, sans-serif; text-align: center; padding: 50px; }}
+                        .error {{ color: #d32f2f; }}
+                        .code {{ background: #f5f5f5; padding: 10px; border-radius: 5px; }}
+                    </style>
+                </head>
+                <body>
+                    <h1 class="error">Lien court introuvable</h1>
+                    <p>Le lien court <code class="code">{short_code}</code> n'existe pas ou a expiré.</p>
+                    <p><a href="https://qrcodes.taohome.ci">Retour à l'accueil</a></p>
+                </body>
+                </html>
+                ''', 404
             
             # Incrémenter les compteurs
             short_link.increment_clicks()
@@ -608,7 +627,24 @@ def create_app():
         except Exception as e:
             db.session.rollback()
             logger.error(f"Erreur redirection: {e}")
-            return jsonify({'error': 'Erreur serveur'}), 500
+            return f'''
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Erreur serveur</title>
+                <meta charset="utf-8">
+                <style>
+                    body {{ font-family: Arial, sans-serif; text-align: center; padding: 50px; }}
+                    .error {{ color: #d32f2f; }}
+                </style>
+            </head>
+            <body>
+                <h1 class="error">Erreur serveur</h1>
+                <p>Une erreur est survenue lors du traitement de votre demande.</p>
+                <p><a href="https://qrcodes.taohome.ci">Retour à l'accueil</a></p>
+            </body>
+            </html>
+            ''', 500
     
     @app.route('/health', methods=['GET'])
     def health_check():
