@@ -327,14 +327,14 @@ def create_app():
                     'message': 'Un QR code existe déjà avec ce contenu'
                 }), 200
             
-            # Gérer les QR codes dynamiques
+            # Gérer les QR codes dynamiques (TOUJOURS côté serveur)
             is_dynamic = data.get('isDynamic', False)
             original_url = None
             short_code = None
             short_url = None
             
             if is_dynamic and data.get('type') == 'url':
-                # Générer un code court unique
+                # Générer un code court unique côté serveur
                 short_code = generate_short_code()
                 while ShortLink.query.filter_by(short_code=short_code).first():
                     short_code = generate_short_code()
@@ -343,7 +343,7 @@ def create_app():
                 base_url = app.config['BASE_URL'].rstrip('/')
                 short_url = f"{base_url}/go/{short_code}"
                 
-                # Créer le lien court
+                # Créer le lien court en base
                 short_link = ShortLink(
                     short_code=short_code,
                     original_url=original_url,
@@ -351,8 +351,10 @@ def create_app():
                 )
                 db.session.add(short_link)
                 
-                # Modifier les données pour utiliser le lien court
+                # IMPORTANT: Le QR code contiendra l'URL courte générée par le serveur
                 data['data'] = short_url
+                
+                logger.info(f"Lien court généré côté serveur: {short_url} -> {original_url}")
             
             # Créer le QR code
             qr_code = QRCode(
@@ -672,6 +674,56 @@ def create_app():
             logger.info("Tables créées avec succès")
         except Exception as e:
             logger.error(f"Erreur création tables: {e}")
+    
+    # Fonction pour mettre à jour les liens courts existants
+    def update_existing_short_urls():
+        """Met à jour les liens courts existants avec la nouvelle BASE_URL"""
+        try:
+            base_url = app.config['BASE_URL'].rstrip('/')
+            
+            # Mettre à jour les QR codes dynamiques
+            dynamic_qr_codes = QRCode.query.filter_by(is_dynamic=True).all()
+            for qr_code in dynamic_qr_codes:
+                if qr_code.short_code:
+                    old_short_url = qr_code.short_url
+                    new_short_url = f"{base_url}/go/{qr_code.short_code}"
+                    
+                    # Mettre à jour le QR code
+                    qr_code.short_url = new_short_url
+                    qr_code.data = new_short_url
+                    
+                    # Mettre à jour le lien court associé
+                    short_link = ShortLink.query.filter_by(short_code=qr_code.short_code).first()
+                    if short_link:
+                        short_link.qr_code_id = qr_code.id
+                    
+                    logger.info(f"Mis à jour QR {qr_code.id}: {old_short_url} -> {new_short_url}")
+            
+            db.session.commit()
+            logger.info(f"Mis à jour {len(dynamic_qr_codes)} QR codes dynamiques")
+            
+        except Exception as e:
+            db.session.rollback()
+            logger.error(f"Erreur mise à jour liens courts: {e}")
+    
+    # Route pour mettre à jour les liens existants
+    @app.route('/admin/update-short-urls', methods=['POST'])
+    @jwt_required()
+    def update_short_urls():
+        """Met à jour tous les liens courts existants"""
+        try:
+            current_user_id = int(get_jwt_identity())
+            
+            # Vérifier si l'utilisateur est admin (optionnel)
+            # Pour l'instant, on permet à tous les utilisateurs authentifiés
+            
+            update_existing_short_urls()
+            
+            return jsonify({'message': 'Liens courts mis à jour avec succès'}), 200
+            
+        except Exception as e:
+            logger.error(f"Erreur mise à jour: {e}")
+            return jsonify({'error': 'Erreur serveur'}), 500
     
     return app
 
