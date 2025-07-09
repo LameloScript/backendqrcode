@@ -188,8 +188,8 @@ def create_app():
             user.update_last_login()
             
             # Créer les tokens JWT
-            access_token = create_access_token(identity=user.id)
-            refresh_token = create_refresh_token(identity=user.id)
+            access_token = create_access_token(identity=str(user.id))
+            refresh_token = create_refresh_token(identity=str(user.id))
             
             # Stocker le refresh token
             refresh_token_obj = RefreshToken(
@@ -220,8 +220,8 @@ def create_app():
     def refresh():
         """Rafraîchir le token d'accès"""
         try:
-            current_user_id = get_jwt_identity()
-            new_access_token = create_access_token(identity=current_user_id)
+            current_user_id = int(get_jwt_identity())
+            new_access_token = create_access_token(identity=str(current_user_id))
             
             return jsonify({'access_token': new_access_token}), 200
         except Exception as e:
@@ -233,7 +233,7 @@ def create_app():
     def logout():
         """Déconnexion utilisateur"""
         try:
-            current_user_id = get_jwt_identity()
+            current_user_id = int(get_jwt_identity())
             
             # Révoquer tous les refresh tokens
             RefreshToken.query.filter_by(user_id=current_user_id).update({'is_revoked': True})
@@ -250,7 +250,7 @@ def create_app():
     def get_current_user():
         """Récupérer le profil utilisateur"""
         try:
-            current_user_id = get_jwt_identity()
+            current_user_id = int(get_jwt_identity())
             user = db.session.get(User, current_user_id)
             
             if not user:
@@ -266,7 +266,7 @@ def create_app():
     def debug_auth():
         """Endpoint de debug pour l'authentification"""
         try:
-            current_user_id = get_jwt_identity()
+            current_user_id = int(get_jwt_identity())
             user = db.session.get(User, current_user_id)
             
             return jsonify({
@@ -293,7 +293,7 @@ def create_app():
     def create_qr_code():
         """Créer un QR code"""
         try:
-            current_user_id = get_jwt_identity()
+            current_user_id = int(get_jwt_identity())
             data = request.get_json()
             
             if not data:
@@ -391,7 +391,7 @@ def create_app():
     def get_user_qr_codes():
         """Récupérer les QR codes de l'utilisateur"""
         try:
-            current_user_id = get_jwt_identity()
+            current_user_id = int(get_jwt_identity())
             qr_codes = QRCode.query.filter_by(user_id=current_user_id).all()
             
             return jsonify([qr.to_dict() for qr in qr_codes]), 200
@@ -405,7 +405,7 @@ def create_app():
     def update_dynamic_url(qr_id):
         """Mettre à jour l'URL d'un QR code dynamique"""
         try:
-            current_user_id = get_jwt_identity()
+            current_user_id = int(get_jwt_identity())
             data = request.get_json()
             
             if not data or 'newUrl' not in data:
@@ -450,7 +450,7 @@ def create_app():
     def update_qr_code(qr_id):
         """Mettre à jour un QR code (couleur, taille, etc.)"""
         try:
-            current_user_id = get_jwt_identity()
+            current_user_id = int(get_jwt_identity())
             data = request.get_json()
             
             if not data:
@@ -493,7 +493,7 @@ def create_app():
     def delete_qr_code(qr_id):
         """Supprimer un QR code"""
         try:
-            current_user_id = get_jwt_identity()
+            current_user_id = int(get_jwt_identity())
             
             # Vérifier que le QR code appartient à l'utilisateur
             qr_code = QRCode.query.filter_by(id=qr_id, user_id=current_user_id).first()
@@ -525,7 +525,7 @@ def create_app():
     def get_qr_scan_logs(qr_id):
         """Récupérer les logs de scan pour un QR code spécifique"""
         try:
-            current_user_id = get_jwt_identity()
+            current_user_id = int(get_jwt_identity())
             
             # Vérifier que le QR code appartient à l'utilisateur
             qr_code = QRCode.query.filter_by(id=qr_id, user_id=current_user_id).first()
