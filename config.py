@@ -33,7 +33,7 @@ class Config:
     CORS_ORIGINS = os.getenv('CORS_ORIGINS', 'http://localhost:8080,http://localhost:5173,http://localhost:3000,https://qrcodes.taohome.ci').split(',')
     
     # Configuration URL de base pour les liens courts
-    BASE_URL = os.getenv('BASE_URL', 'https://qrcodes.taohome.ci')
+    BASE_URL = os.getenv('BASE_URL', 'https://backendqrcode-production.up.railway.app')
     
     # Rate Limiting
     RATELIMIT_STORAGE_URL = os.getenv('RATELIMIT_STORAGE_URL', 'memory://')
