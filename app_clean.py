@@ -284,15 +284,7 @@ def create_app():
             logger.error(f"Erreur debug auth: {e}")
             return jsonify({'error': 'Erreur serveur', 'details': str(e)}), 500
     
-    @app.route('/health', methods=['GET'])
-    def health_check():
-        """Vérification de santé du serveur"""
-        return jsonify({
-            'status': 'healthy',
-            'timestamp': datetime.now().isoformat(),
-            'environment': os.getenv('FLASK_ENV', 'development'),
-            'database': 'connected'
-        }), 200
+
     
     # Routes QR Codes
     @app.route('/qr-codes', methods=['POST'])
